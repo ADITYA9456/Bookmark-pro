@@ -2,7 +2,7 @@
 
 A simple, real-time bookmark manager built with Next.js (App Router), Supabase, and Tailwind CSS as part of a fullstack screening task.
 
-**Live URL:** (https://bookmark-pro-chi.vercel.app)]
+**Live URL:**  https://bookmark-pro-jet.vercel.app
 
 ---
 
