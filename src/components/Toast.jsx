@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 export default function Toast({ toasts, onRemove }) {
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 z-50 flex flex-col gap-2 w-[calc(100%-2rem)] sm:w-auto">
       {toasts.map(t => <ToastItem key={t.id} toast={t} onRemove={onRemove} />)}
     </div>
   );

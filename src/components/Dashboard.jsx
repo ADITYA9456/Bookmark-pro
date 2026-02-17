@@ -202,7 +202,7 @@ export default function Dashboard({ userId }) {
   return (
     <>
      
-      <div className="flex items-center gap-2.5 mb-5 animate-fade-up">
+      <div className="flex items-center gap-2.5 mb-5">
         <div className="stat-card flex-1 px-4 py-3.5 flex items-center gap-3 rounded-xl
                         bg-white/2.5 border border-white/5 backdrop-blur-sm">
           <div className="w-9 h-9 rounded-lg bg-linear-to-br from-violet-500/15 to-indigo-500/10
@@ -233,7 +233,7 @@ export default function Dashboard({ userId }) {
 
       
       {bookmarks.length > 0 && (
-        <div className="flex items-center gap-2 mb-5 animate-fade-up" style={{ animationDelay: "80ms" }}>
+        <div className="flex items-center gap-2 mb-5">
           <div className="relative flex-1 group">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600
                                group-focus-within:text-violet-400 transition-colors pointer-events-none" />

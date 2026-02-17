@@ -49,7 +49,7 @@ export default function BookmarkForm({ onAdd }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="glass-card p-5 mb-5 animate-fade-up" style={{ animationDelay: "40ms" }}>
+    <form onSubmit={handleSubmit} className="glass-card p-5 mb-5">
       {error && (
         <div className="text-red-400 text-xs bg-red-500/6 border border-red-500/10 px-3.5 py-2 rounded-lg mb-4 font-medium">
           {error}
@@ -60,12 +60,12 @@ export default function BookmarkForm({ onAdd }) {
         <input
           ref={titleRef}
           type="text"
-          placeholder="Title"
+          placeholder="Bookmark title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="input-glow flex-1 bg-white/3 border border-white/6 text-white text-sm px-3.5 py-2.5
                      rounded-xl placeholder:text-gray-600 focus:outline-none focus:border-violet-500/30
-                     focus:bg-white/4 transition-all"
+                     focus:bg-white/4 transition-colors"
           required
           disabled={loading}
           aria-label="Bookmark title"
@@ -77,7 +77,7 @@ export default function BookmarkForm({ onAdd }) {
           onChange={(e) => setUrl(e.target.value)}
           className="input-glow flex-1 bg-white/3 border border-white/6 text-white text-sm px-3.5 py-2.5
                      rounded-xl placeholder:text-gray-600 focus:outline-none focus:border-violet-500/30
-                     focus:bg-white/4 transition-all"
+                     focus:bg-white/4 transition-colors"
           required
           disabled={loading}
           aria-label="Bookmark URL"

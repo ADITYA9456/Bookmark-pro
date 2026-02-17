@@ -22,31 +22,6 @@ html {
   color: #fff;
 }
 
-/* gradient border card */
-.gradient-border {
-  position: relative;
-  background: rgba(14, 14, 22, 0.8);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-}
-.gradient-border::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  padding: 1px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(6, 182, 212, 0.1));
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  transition: background 0.3s ease;
-}
-.gradient-border:hover::before {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(6, 182, 212, 0.18));
-}
-
 /* glass card for login & modals */
 .glass-card {
   background: rgba(12, 12, 20, 0.85);
@@ -96,51 +71,7 @@ html {
   left: 130%;
 }
 
-/* accent bar on bookmark cards */
-.accent-left {
-  position: relative;
-}
-.accent-left::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 20%;
-  height: 60%;
-  width: 2px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #7c3aed, #06b6d4);
-  opacity: 0;
-  transition: opacity 0.3s ease, height 0.3s ease;
-}
-.accent-left:hover::after {
-  opacity: 1;
-}
 
-/* animated gradient ring for logo */
-@keyframes spinGradient {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-.logo-ring {
-  position: relative;
-}
-.logo-ring::before {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  border-radius: 14px;
-  background: conic-gradient(from 0deg, #7c3aed, #06b6d4, #a855f7, #7c3aed);
-  animation: spinGradient 5s linear infinite;
-  opacity: 0.4;
-  z-index: -1;
-  filter: blur(5px);
-}
-
-/* floating dots */
-@keyframes float {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 0.2; }
-  50% { transform: translateY(-24px) scale(1.15); opacity: 0.5; }
-}
 
 /* toast progress bar */
 @keyframes toastProgress {
@@ -160,23 +91,7 @@ html {
   animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* slide in from right */
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-.animate-slide-in {
-  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
 
-/* subtle pulse for logo */
-@keyframes breathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.25); }
-  50% { box-shadow: 0 0 24px 6px rgba(124, 58, 237, 0.1); }
-}
-.logo-breathe {
-  animation: breathe 3s ease-in-out infinite;
-}
 
 /* input focus glow */
 .input-glow {
@@ -217,15 +132,7 @@ html {
   animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* star pulse when toggled */
-@keyframes starPop {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.35); }
-  100% { transform: scale(1); }
-}
-.star-pop {
-  animation: starPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
+
 
 /* stat card hover lift */
 .stat-card {
@@ -260,14 +167,7 @@ html {
   box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.08), 0 8px 24px -8px rgba(0, 0, 0, 0.3);
 }
 
-/* empty state bounce */
-@keyframes gentleBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-.animate-gentle-bounce {
-  animation: gentleBounce 2.5s ease-in-out infinite;
-}
+
 
 /* search bar active state */
 .search-active {

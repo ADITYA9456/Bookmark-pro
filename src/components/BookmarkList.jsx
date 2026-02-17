@@ -11,8 +11,17 @@ function timeAgo(dateStr) {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString();
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function getDomain(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
 function getFavicon(url) {
@@ -24,13 +33,60 @@ function getFavicon(url) {
   }
 }
 
+// Color from string hash for favicon fallback
+function getDomainColor(domain) {
+  const colors = [
+    "from-violet-500/20 to-violet-600/10 text-violet-400",
+    "from-blue-500/20 to-blue-600/10 text-blue-400",
+    "from-cyan-500/20 to-cyan-600/10 text-cyan-400",
+    "from-emerald-500/20 to-emerald-600/10 text-emerald-400",
+    "from-amber-500/20 to-amber-600/10 text-amber-400",
+    "from-rose-500/20 to-rose-600/10 text-rose-400",
+    "from-pink-500/20 to-pink-600/10 text-pink-400",
+    "from-indigo-500/20 to-indigo-600/10 text-indigo-400",
+  ];
+  let hash = 0;
+  for (let i = 0; i < domain.length; i++) hash = domain.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function FaviconBox({ url }) {
+  const [failed, setFailed] = useState(false);
+  const favicon = getFavicon(url);
+  const domain = getDomain(url);
+  const color = getDomainColor(domain);
+  const letter = domain[0]?.toUpperCase() || "?";
+
+  if (!favicon || failed) {
+    return (
+      <div className={`w-9 h-9 rounded-lg bg-linear-to-br ${color} flex items-center justify-center shrink-0
+                        border border-white/5 text-xs font-bold`}>
+        {letter}
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-9 h-9 rounded-lg bg-white/4 flex items-center justify-center shrink-0
+                    border border-white/5">
+      <img
+        src={favicon}
+        alt=""
+        className="w-4 h-4"
+        loading="lazy"
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+}
+
 function StarIcon({ filled, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`p-1.5 rounded-lg transition-all cursor-pointer active:scale-90 ${
+      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
         filled
-          ? "text-amber-400 hover:text-amber-300 star-pop"
+          ? "text-amber-400 hover:text-amber-300"
           : "text-gray-700 hover:text-amber-400/60 hover:bg-amber-400/5"
       }`}
       aria-label={filled ? "Remove from favorites" : "Add to favorites"}
@@ -67,7 +123,7 @@ function CopyButton({ url }) {
   return (
     <button
       onClick={handleCopy}
-      className={`p-2 rounded-lg active:scale-90 transition-all cursor-pointer ${
+      className={`p-2 rounded-lg transition-colors cursor-pointer ${
         copied
           ? "text-emerald-400 bg-emerald-500/8"
           : "text-gray-600 hover:text-cyan-400 hover:bg-cyan-500/8"
@@ -100,7 +156,7 @@ export default function BookmarkList({ bookmarks, loading, onDelete, onFavorite,
   if (!bookmarks.length) {
     if (searchQuery) {
       return (
-        <div className="text-center py-16 animate-fade-up">
+        <div className="text-center py-16">
           <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/2.5 border border-white/5
                           flex items-center justify-center">
             <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,22 +164,22 @@ export default function BookmarkList({ bookmarks, loading, onDelete, onFavorite,
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <p className="text-gray-400 text-sm font-semibold">No results found</p>
+          <p className="text-gray-400 text-sm font-semibold">No matches for &ldquo;{searchQuery}&rdquo;</p>
           <p className="text-gray-600 text-xs mt-1.5">Try a different search term</p>
         </div>
       );
     }
     return (
-      <div className="text-center py-20 animate-fade-up">
+      <div className="text-center py-20">
         <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white/2.5 border border-white/5
-                        flex items-center justify-center animate-gentle-bounce">
+                        flex items-center justify-center">
           <svg className="w-7 h-7 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
           </svg>
         </div>
         <p className="text-gray-400 text-sm font-semibold">No bookmarks yet</p>
-        <p className="text-gray-600 text-xs mt-1.5">Save your first link above</p>
+        <p className="text-gray-600 text-xs mt-1.5">Save your first link above to get started</p>
       </div>
     );
   }
@@ -131,34 +187,29 @@ export default function BookmarkList({ bookmarks, loading, onDelete, onFavorite,
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between px-1 mb-3">
-        <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">Your links</span>
+        <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
+          {searchQuery ? "Search results" : "Your links"}
+        </span>
         <span className="text-[10px] text-gray-500 bg-white/4 px-2.5 py-0.5 rounded-full font-medium
                          border border-white/4">
-          {bookmarks.length} result{bookmarks.length !== 1 ? "s" : ""}
+          {bookmarks.length} {bookmarks.length === 1 ? "link" : "links"}
         </span>
       </div>
 
-      {bookmarks.map((bm, i) => {
-        const favicon = getFavicon(bm.url);
+      {bookmarks.map((bm) => {
+        const domain = getDomain(bm.url);
         const starred = !!bm.is_favorite;
 
         return (
           <div
             key={bm.id}
-            className="group card-hover-glow glass-card p-4 flex items-center gap-3
-                       transition-all animate-fade-up"
-            style={{ animationDelay: `${i * 40}ms` }}
+            className="group card-hover-glow glass-card p-4 flex items-center gap-3 transition-colors"
           >
             {/* star */}
             <StarIcon filled={starred} onClick={() => onFavorite(bm.id)} />
 
-            {/* favicon */}
-            {favicon && (
-              <div className="w-9 h-9 rounded-lg bg-white/4 flex items-center justify-center shrink-0
-                              border border-white/5 group-hover:border-white/8 transition-colors">
-                <img src={favicon} alt="" className="w-4 h-4" loading="lazy" />
-              </div>
-            )}
+            {/* favicon with fallback */}
+            <FaviconBox url={bm.url} />
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -169,26 +220,31 @@ export default function BookmarkList({ bookmarks, loading, onDelete, onFavorite,
                     FAV
                   </span>
                 )}
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <a href={bm.url} target="_blank" rel="noopener noreferrer"
+                   className="text-violet-400/50 text-xs truncate hover:text-violet-300
+                              flex items-center gap-1 transition-colors">
+                  <span className="truncate">{domain}</span>
+                  <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </a>
                 {bm.created_at && (
-                  <span className="text-[10px] text-gray-600 shrink-0 hidden sm:inline">
-                    {timeAgo(bm.created_at)}
-                  </span>
+                  <>
+                    <span className="text-gray-700 text-[10px] hidden sm:inline">&middot;</span>
+                    <span className="text-[10px] text-gray-600 shrink-0 hidden sm:inline">
+                      {timeAgo(bm.created_at)}
+                    </span>
+                  </>
                 )}
               </div>
-              <a href={bm.url} target="_blank" rel="noopener noreferrer"
-                 className="text-violet-400/50 text-xs truncate hover:text-violet-300
-                            flex items-center gap-1 mt-1 max-w-full transition-colors">
-                <span className="truncate">{bm.url}</span>
-                <ExternalLink className="w-3 h-3 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity" />
-              </a>
             </div>
 
-            <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+            <div className="flex items-center gap-0.5 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
               <CopyButton url={bm.url} />
               <button
                 onClick={() => onEdit(bm)}
                 className="p-2 text-gray-600 hover:text-violet-400 rounded-lg hover:bg-violet-500/8
-                           active:scale-90 transition-all cursor-pointer"
+                           transition-colors cursor-pointer"
                 title="Edit"
                 aria-label={`Edit ${bm.title}`}
               >
@@ -197,7 +253,7 @@ export default function BookmarkList({ bookmarks, loading, onDelete, onFavorite,
               <button
                 onClick={() => onDelete(bm.id, bm.title)}
                 className="p-2 text-gray-600 hover:text-red-400 rounded-lg hover:bg-red-500/8
-                           active:scale-90 transition-all cursor-pointer"
+                           transition-colors cursor-pointer"
                 title="Delete"
                 aria-label={`Delete ${bm.title}`}
               >

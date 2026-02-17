@@ -35,7 +35,7 @@ export default async function Home() {
         <header className="flex items-center justify-between mb-8 py-3 px-4 rounded-2xl
                            bg-white/2 border border-white/4 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <div className="logo-ring w-9 h-9 rounded-lg bg-linear-to-br from-violet-600 to-indigo-500 flex items-center justify-center shadow-md shadow-violet-600/15">
+            <div className="w-9 h-9 rounded-lg bg-linear-to-br from-violet-600 to-indigo-500 flex items-center justify-center shadow-md shadow-violet-600/15">
               <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2}
                       d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />

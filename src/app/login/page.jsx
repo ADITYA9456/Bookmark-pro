@@ -27,28 +27,10 @@ export default function LoginPage() {
       <div className="absolute bottom-[-20%] right-[-10%] w-125 h-125 bg-cyan-500/6 rounded-full blur-[120px]" />
       <div className="absolute top-[40%] right-[20%] w-75 h-75 bg-indigo-600/5 rounded-full blur-[100px]" />
 
-      
-      {[...Array(6)].map((_, i) => (
-        <div
-          key={i}
-          className="absolute rounded-full"
-          style={{
-            width: `${2 + i % 3}px`,
-            height: `${2 + i % 3}px`,
-            background: i % 2 === 0 ? "rgba(124, 58, 237, 0.3)" : "rgba(6, 182, 212, 0.25)",
-            top: `${15 + i * 13}%`,
-            left: `${8 + i * 16}%`,
-            animation: `float ${3.5 + i * 0.6}s ease-in-out infinite`,
-            animationDelay: `${i * 0.5}s`,
-          }}
-        />
-      ))}
-
       <div className="relative z-10 w-full max-w-sm mx-4 animate-fade-up">
         <div className="glass-card p-9 text-center">
 
-          
-          <div className="logo-ring logo-breathe w-16 h-16 mx-auto mb-6 rounded-2xl bg-linear-to-br from-violet-600 to-indigo-500 flex items-center justify-center shadow-xl shadow-violet-500/15">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-linear-to-br from-violet-600 to-indigo-500 flex items-center justify-center shadow-xl shadow-violet-500/15">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
                     d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -58,7 +40,6 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-white tracking-tight">Smart Bookmark</h1>
           <p className="text-gray-500 text-sm mt-2 leading-relaxed">Your links, always within reach</p>
 
-         
           <div className="h-px bg-linear-to-r from-transparent via-white/8 to-transparent my-7" />
 
           
