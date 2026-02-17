@@ -1,6 +1,7 @@
 "use client";
 
-import { ExternalLink, Pencil, Trash2 } from "lucide-react";
+import { Check, Copy, ExternalLink, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -32,6 +33,7 @@ function StarIcon({ filled, onClick }) {
           ? "text-amber-400 hover:text-amber-300 star-pop"
           : "text-gray-700 hover:text-amber-400/60 hover:bg-amber-400/5"
       }`}
+      aria-label={filled ? "Remove from favorites" : "Add to favorites"}
       title={filled ? "Unstar" : "Star"}
     >
       <svg
@@ -51,7 +53,34 @@ function StarIcon({ filled, onClick }) {
   );
 }
 
-export default function BookmarkList({ bookmarks, loading, onDelete, onFavorite, onEdit }) {
+function CopyButton({ url }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={`p-2 rounded-lg active:scale-90 transition-all cursor-pointer ${
+        copied
+          ? "text-emerald-400 bg-emerald-500/8"
+          : "text-gray-600 hover:text-cyan-400 hover:bg-cyan-500/8"
+      }`}
+      title={copied ? "Copied!" : "Copy URL"}
+      aria-label="Copy URL to clipboard"
+    >
+      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+    </button>
+  );
+}
+
+export default function BookmarkList({ bookmarks, loading, onDelete, onFavorite, onEdit, searchQuery }) {
   if (loading) {
     return (
       <div className="space-y-2.5">
@@ -69,6 +98,21 @@ export default function BookmarkList({ bookmarks, loading, onDelete, onFavorite,
   }
 
   if (!bookmarks.length) {
+    if (searchQuery) {
+      return (
+        <div className="text-center py-16 animate-fade-up">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/2.5 border border-white/5
+                          flex items-center justify-center">
+            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <p className="text-gray-400 text-sm font-semibold">No results found</p>
+          <p className="text-gray-600 text-xs mt-1.5">Try a different search term</p>
+        </div>
+      );
+    }
     return (
       <div className="text-center py-20 animate-fade-up">
         <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white/2.5 border border-white/5
@@ -140,11 +184,13 @@ export default function BookmarkList({ bookmarks, loading, onDelete, onFavorite,
             </div>
 
             <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+              <CopyButton url={bm.url} />
               <button
                 onClick={() => onEdit(bm)}
                 className="p-2 text-gray-600 hover:text-violet-400 rounded-lg hover:bg-violet-500/8
                            active:scale-90 transition-all cursor-pointer"
                 title="Edit"
+                aria-label={`Edit ${bm.title}`}
               >
                 <Pencil className="w-3.5 h-3.5" />
               </button>
@@ -153,6 +199,7 @@ export default function BookmarkList({ bookmarks, loading, onDelete, onFavorite,
                 className="p-2 text-gray-600 hover:text-red-400 rounded-lg hover:bg-red-500/8
                            active:scale-90 transition-all cursor-pointer"
                 title="Delete"
+                aria-label={`Delete ${bm.title}`}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

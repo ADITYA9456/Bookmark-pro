@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark, Search, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BookmarkForm from "./BookmarkForm";
 import BookmarkList from "./BookmarkList";
 import ConfirmDialog from "./ConfirmDialog";
@@ -17,6 +17,7 @@ export default function Dashboard({ userId }) {
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showDeleteAll, setShowDeleteAll] = useState(false);
+  const searchRef = useRef(null);
 
   const supabase = useMemo(() => createClient(), []);
 
@@ -66,6 +67,18 @@ export default function Dashboard({ userId }) {
 
     return () => supabase.removeChannel(channel);
   }, [userId, supabase]);
+
+  // Ctrl+K / Cmd+K keyboard shortcut for search
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
 
   const sortedBookmarks = useMemo(() => {
@@ -225,22 +238,31 @@ export default function Dashboard({ userId }) {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600
                                group-focus-within:text-violet-400 transition-colors pointer-events-none" />
             <input
+              ref={searchRef}
               type="text"
               placeholder="Search bookmarks..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-glow w-full bg-white/3 border border-white/6 text-white text-xs
-                         pl-9 pr-8 py-2.5 rounded-xl placeholder:text-gray-600 focus:outline-none
+                         pl-9 pr-20 py-2.5 rounded-xl placeholder:text-gray-600 focus:outline-none
                          focus:border-violet-500/30 focus:bg-white/4 transition-all"
+              aria-label="Search bookmarks"
             />
-            {searchQuery && (
+            {searchQuery ? (
               <button
                 onClick={() => setSearchQuery("")}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400
                            transition-colors cursor-pointer"
+                aria-label="Clear search"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
+            ) : (
+              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex items-center gap-0.5
+                              text-[10px] text-gray-600 bg-white/4 px-1.5 py-0.5 rounded-md border border-white/6
+                              font-mono pointer-events-none">
+                Ctrl K
+              </kbd>
             )}
           </div>
           <button
@@ -262,6 +284,7 @@ export default function Dashboard({ userId }) {
         onDelete={askDelete}
         onFavorite={toggleFavorite}
         onEdit={(bm) => setEditTarget(bm)}
+        searchQuery={searchQuery}
       />
 
       <EditBookmarkModal

@@ -1,19 +1,24 @@
 # Smart Bookmark App
 
-A simple, real-time bookmark manager built with Next.js (App Router), Supabase, and Tailwind CSS as part of a fullstack screening task.
+A real-time bookmark manager built with **Next.js 16** (App Router), **Supabase**, and **Tailwind CSS v4**.
 
-**Live URL:**  https://bookmark-pro-jet.vercel.app
+**Live URL:** https://bookmark-pro-jet.vercel.app
 
 ---
 
 ## Features
 
-- **Google OAuth Login** — Sign in with Google only (no email/password)
-- **Add Bookmarks** — Save any URL with a title
-- **Private Bookmarks** — Each user can only see their own bookmarks (Row Level Security)
-- **Real-time Updates** — Changes reflect instantly across multiple tabs without page refresh
-- **Delete Bookmarks** — Remove bookmarks with one click
-- **Responsive Design** — Works on desktop and mobile
+- **Google OAuth Login** — Sign in with Google (no email/password)
+- **Add / Edit / Delete Bookmarks** — Full CRUD with optimistic UI updates
+- **Favorites** — Star important bookmarks, favorites always sorted on top
+- **Real-time Sync** — Changes reflect instantly across multiple tabs (Supabase Realtime)
+- **Search** — Filter bookmarks by title or URL with `Ctrl+K` shortcut
+- **Copy URL** — One-click copy to clipboard on any bookmark
+- **Private by Default** — Each user can only see their own data (Row Level Security)
+- **PWA Support** — Installable as a native app on mobile & desktop
+- **Error Boundary** — Graceful error recovery without full page crash
+- **Responsive Design** — Optimized for desktop, tablet, and mobile
+- **Keyboard Accessible** — Full keyboard navigation & shortcuts
 
 ---
 
@@ -21,11 +26,12 @@ A simple, real-time bookmark manager built with Next.js (App Router), Supabase, 
 
 | Technology | Purpose |
 |-----------|---------|
-| **Next.js 16** (App Router) | Frontend framework with server components |
-| **Supabase** | Authentication (Google OAuth), PostgreSQL Database, Realtime subscriptions |
-| **Tailwind CSS** | Utility-first styling |
-| **Vercel** | Deployment platform |
-| **TypeScript** | Type safety |
+| **Next.js 16** (App Router) | Framework — server & client components |
+| **React 19** | UI library with hooks |
+| **Supabase** | Auth (Google OAuth), PostgreSQL, Realtime subscriptions |
+| **Tailwind CSS v4** | Utility-first styling |
+| **Lucide React** | Icon library |
+| **Vercel** | Deployment & hosting |
 
 ---
 
@@ -34,30 +40,37 @@ A simple, real-time bookmark manager built with Next.js (App Router), Supabase, 
 ```
 src/
 ├── app/
-│   ├── auth/callback/route.ts   # OAuth callback handler
-│   ├── login/page.tsx            # Google login page
-│   ├── page.tsx                  # Main dashboard (server component)
-│   ├── layout.tsx                # Root layout
-│   └── globals.css               # Global styles
+│   ├── auth/callback/route.js   # OAuth callback handler
+│   ├── login/page.jsx            # Google login page
+│   ├── page.jsx                  # Main dashboard (server component)
+│   ├── layout.jsx                # Root layout with SEO meta
+│   └── globals.css               # Global styles & animations
 ├── components/
-│   ├── BookmarkForm.tsx          # Add bookmark form (client component)
-│   └── BookmarkList.tsx          # Bookmark list + realtime + delete (client component)
+│   ├── BookmarkForm.jsx          # Add bookmark form (client)
+│   ├── BookmarkList.jsx          # Bookmark list with favicons (client)
+│   ├── ConfirmDialog.jsx         # Reusable confirmation modal
+│   ├── Dashboard.jsx             # Main dashboard logic + realtime (client)
+│   ├── EditBookmarkModal.jsx     # Edit bookmark modal
+│   ├── ErrorBoundary.jsx         # React error boundary
+│   ├── InstallPrompt.jsx         # PWA install banner
+│   └── Toast.jsx                 # Toast notification system
 ├── lib/supabase/
-│   ├── client.ts                 # Browser-side Supabase client
-│   ├── server.ts                 # Server-side Supabase client
-│   └── middleware.ts             # Auth middleware helper
-└── middleware.ts                 # Route protection middleware
+│   ├── client.js                 # Browser-side Supabase client
+│   ├── server.js                 # Server-side Supabase client
+│   └── middleware.js             # Auth middleware helper
+└── middleware.js                 # Route protection middleware
 ```
 
 ---
 
 ## How Realtime Works
 
-1. When the dashboard loads, `BookmarkList` subscribes to a Supabase Realtime channel
+1. When the dashboard loads, `Dashboard` subscribes to a Supabase Realtime channel
 2. The channel listens for `postgres_changes` on the `bookmarks` table, filtered by `user_id`
 3. On `INSERT` → the new bookmark is prepended to the list state
 4. On `DELETE` → the bookmark is removed from the list state
-5. React re-renders the UI automatically — no manual refresh needed
+5. On `UPDATE` → the bookmark is replaced in-place (edit, favorite toggle)
+6. React re-renders the UI automatically — no manual refresh needed
 
 This means: if you open the app in two tabs and add a bookmark in one, it appears in the other tab instantly.
 
@@ -71,14 +84,16 @@ CREATE TABLE bookmarks (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
   url TEXT NOT NULL,
+  is_favorite BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ```
 
 **Row Level Security Policies:**
-- `SELECT`: Users can only view their own bookmarks
-- `INSERT`: Users can only insert bookmarks with their own user_id
-- `DELETE`: Users can only delete their own bookmarks
+- `SELECT` — Users can only view their own bookmarks
+- `INSERT` — Users can only insert bookmarks with their own `user_id`
+- `UPDATE` — Users can only update their own bookmarks
+- `DELETE` — Users can only delete their own bookmarks
 
 ---
 
@@ -90,7 +105,7 @@ CREATE TABLE bookmarks (
 
 ### 2. Cookie Handling in App Router
 **Problem:** Next.js App Router requires different Supabase client configurations for browser vs server vs middleware. Using the wrong client causes authentication failures.
-**Solution:** Created three separate Supabase client files — `client.ts` (browser), `server.ts` (server components/actions), and `middleware.ts` (route protection) — following Supabase's official SSR guide.
+**Solution:** Created three separate Supabase client files — `client.js` (browser), `server.js` (server components/actions), and `middleware.js` (route protection) — following Supabase's official SSR guide.
 
 ### 3. Realtime Channel Cleanup
 **Problem:** Without proper cleanup, switching pages or re-rendering components created multiple duplicate realtime channels, causing performance issues and duplicate bookmark entries.
@@ -103,6 +118,10 @@ CREATE TABLE bookmarks (
 ### 5. OAuth Redirect URI Configuration
 **Problem:** Google OAuth requires exact redirect URIs. Mismatched URIs cause login failures.
 **Solution:** Configured the correct callback URL (`https://<project>.supabase.co/auth/v1/callback`) in both Google Cloud Console and Supabase dashboard. For Vercel deployment, also added the production URL to Supabase's allowed redirect URLs.
+
+### 6. Optimistic Updates & Rollback
+**Problem:** Waiting for server response before updating UI makes interactions feel sluggish.
+**Solution:** Implemented optimistic updates for delete, favorite toggle, and edit operations. If the server request fails, the UI rolls back to the previous state and shows an error toast.
 
 ---
 

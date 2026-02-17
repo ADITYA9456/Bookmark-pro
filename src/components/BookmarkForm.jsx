@@ -1,13 +1,21 @@
 "use client";
 
 import { Loader2, Plus } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function BookmarkForm({ onAdd }) {
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const titleRef = useRef(null);
+
+  const normalizeUrl = (raw) => {
+    let u = raw.trim();
+    if (!u) return u;
+    if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+    return u;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,12 +26,22 @@ export default function BookmarkForm({ onAdd }) {
       return;
     }
 
+    const finalUrl = normalizeUrl(url);
+
+    try {
+      new URL(finalUrl);
+    } catch {
+      setError("That doesn't look like a valid URL");
+      return;
+    }
+
     setLoading(true);
-    const ok = await onAdd(title.trim(), url.trim());
+    const ok = await onAdd(title.trim(), finalUrl);
 
     if (ok) {
       setTitle("");
       setUrl("");
+      titleRef.current?.focus();
     } else {
       setError("Something went wrong, try again");
     }
@@ -40,6 +58,7 @@ export default function BookmarkForm({ onAdd }) {
 
       <div className="flex flex-col sm:flex-row gap-2.5">
         <input
+          ref={titleRef}
           type="text"
           placeholder="Title"
           value={title}
@@ -49,10 +68,11 @@ export default function BookmarkForm({ onAdd }) {
                      focus:bg-white/4 transition-all"
           required
           disabled={loading}
+          aria-label="Bookmark title"
         />
         <input
-          type="url"
-          placeholder="https://..."
+          type="text"
+          placeholder="example.com or https://..."
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           className="input-glow flex-1 bg-white/3 border border-white/6 text-white text-sm px-3.5 py-2.5
@@ -60,6 +80,7 @@ export default function BookmarkForm({ onAdd }) {
                      focus:bg-white/4 transition-all"
           required
           disabled={loading}
+          aria-label="Bookmark URL"
         />
         <button
           type="submit"

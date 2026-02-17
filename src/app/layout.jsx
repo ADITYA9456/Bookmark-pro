@@ -5,9 +5,25 @@ import "./globals.css";
 const dmSans = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const metadata = {
-  title: "Smart Bookmark",
-  description: "Save and manage your favorite links in one place.",
+  title: "Smart Bookmark — Save & Organize Your Links",
+  description: "A fast, real-time bookmark manager. Save, search, and organize your favorite links with Google sign-in. Works offline as a PWA.",
   manifest: "/manifest.json",
+  metadataBase: new URL("https://bookmark-pro-jet.vercel.app"),
+  openGraph: {
+    title: "Smart Bookmark — Save & Organize Your Links",
+    description: "A fast, real-time bookmark manager with Google sign-in, favorites, search, and instant sync across tabs.",
+    url: "https://bookmark-pro-jet.vercel.app",
+    siteName: "Smart Bookmark",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary",
+    title: "Smart Bookmark",
+    description: "Save, search, and organize your favorite links in one place.",
+  },
+  keywords: ["bookmark manager", "save links", "bookmark app", "next.js", "supabase", "realtime"],
+  authors: [{ name: "Smart Bookmark" }],
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

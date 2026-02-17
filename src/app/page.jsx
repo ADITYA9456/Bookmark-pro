@@ -1,4 +1,5 @@
 import Dashboard from "@/components/Dashboard";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { createClient } from "@/lib/supabase/server";
 import { LogOut } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -68,7 +69,17 @@ export default async function Home() {
           </div>
         </header>
 
-        <Dashboard userId={user.id} />
+        <ErrorBoundary>
+          <Dashboard userId={user.id} />
+        </ErrorBoundary>
+
+        {/* footer */}
+        <footer className="mt-12 pb-6 text-center">
+          <div className="h-px bg-linear-to-r from-transparent via-white/5 to-transparent mb-5" />
+          <p className="text-[10px] text-gray-600">
+            Built with Next.js, Supabase & Tailwind CSS
+          </p>
+        </footer>
       </div>
     </div>
   );
