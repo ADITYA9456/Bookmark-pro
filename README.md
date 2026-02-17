@@ -1,82 +1,147 @@
 # Smart Bookmark App
 
-A real-time bookmark manager built with **Next.js 16** (App Router), **Supabase**, and **Tailwind CSS v4**.
+A real-time bookmark manager where users can sign in with Google, save bookmarks, and see changes sync instantly across tabs.
 
-**Live URL:** https://bookmark-pro-jet.vercel.app
+**Live:** [https://bookmark-pro-jet.vercel.app](https://bookmark-pro-jet.vercel.app)
 
 ---
 
-## Features
+## What It Does
 
-- **Google OAuth Login** — Sign in with Google (no email/password)
-- **Add / Edit / Delete Bookmarks** — Full CRUD with optimistic UI updates
-- **Favorites** — Star important bookmarks, favorites always sorted on top
-- **Real-time Sync** — Changes reflect instantly across multiple tabs (Supabase Realtime)
-- **Search** — Filter bookmarks by title or URL with `Ctrl+K` shortcut
-- **Copy URL** — One-click copy to clipboard on any bookmark
-- **Private by Default** — Each user can only see their own data (Row Level Security)
-- **PWA Support** — Installable as a native app on mobile & desktop
-- **Error Boundary** — Graceful error recovery without full page crash
-- **Responsive Design** — Optimized for desktop, tablet, and mobile
-- **Keyboard Accessible** — Full keyboard navigation & shortcuts
+1. **Google Sign-in** — Users log in via Google OAuth (no email/password flow)
+2. **Add Bookmarks** — Enter a URL + title and it's saved instantly
+3. **Private Data** — Each user only sees their own bookmarks (Row-Level Security in Supabase)
+4. **Real-time Sync** — Open two tabs, add a bookmark in one → it appears in the other without refreshing
+5. **Delete Bookmarks** — Remove any bookmark you own
+6. **Deployed on Vercel** — Live and working at the URL above
+
+**Bonus features I added:** Edit bookmarks, favorite/star system, search with `Ctrl+K`, copy URL to clipboard, PWA install support, and an error boundary for crash recovery.
 
 ---
 
 ## Tech Stack
 
-| Technology | Purpose |
-|-----------|---------|
-| **Next.js 16** (App Router) | Framework — server & client components |
-| **React 19** | UI library with hooks |
-| **Supabase** | Auth (Google OAuth), PostgreSQL, Realtime subscriptions |
-| **Tailwind CSS v4** | Utility-first styling |
-| **Lucide React** | Icon library |
-| **Vercel** | Deployment & hosting |
+- **Next.js 16** (App Router) — Framework with server and client components
+- **Supabase** — Auth (Google OAuth), PostgreSQL database, Realtime subscriptions
+- **Tailwind CSS v4** — Styling
+- **Vercel** — Deployment
 
 ---
 
-## Architecture
+## Problems I Ran Into & How I Solved Them
 
+### Problem 1: Supabase needs 3 different clients in Next.js App Router
+
+This was confusing at first. You can't just create one Supabase client and use it everywhere. Server components, client components, and middleware all handle cookies differently, and Supabase auth depends on cookies.
+
+**What went wrong:** I initially used a single `createClient()` everywhere. Login would work, but then `supabase.auth.getUser()` would return `null` in server components — the session cookies weren't being read properly on the server side.
+
+**How I fixed it:** I created three separate client files:
+- `lib/supabase/client.js` → uses `createBrowserClient` (for client components)
+- `lib/supabase/server.js` → uses `createServerClient` with `cookies()` from `next/headers` (for server components)
+- `lib/supabase/middleware.js` → uses `createServerClient` with request/response cookie handling (for middleware)
+
+Each one handles cookies in the way that works for its environment. The middleware one is especially tricky because it has to both read cookies from the request AND write updated cookies to the response.
+
+---
+
+### Problem 2: Realtime was showing other users' bookmarks
+
+Even with RLS enabled on the database, the Supabase Realtime channel was broadcasting `INSERT`/`DELETE` events for ALL rows in the table — not just the current user's.
+
+**What went wrong:** I set up the channel like this:
+```js
+supabase.channel("bookmarks").on("postgres_changes", {
+  event: "*",
+  schema: "public",
+  table: "bookmarks"
+}, callback)
 ```
-src/
-├── app/
-│   ├── auth/callback/route.js   # OAuth callback handler
-│   ├── login/page.jsx            # Google login page
-│   ├── page.jsx                  # Main dashboard (server component)
-│   ├── layout.jsx                # Root layout with SEO meta
-│   └── globals.css               # Global styles & animations
-├── components/
-│   ├── BookmarkForm.jsx          # Add bookmark form (client)
-│   ├── BookmarkList.jsx          # Bookmark list with favicons (client)
-│   ├── ConfirmDialog.jsx         # Reusable confirmation modal
-│   ├── Dashboard.jsx             # Main dashboard logic + realtime (client)
-│   ├── EditBookmarkModal.jsx     # Edit bookmark modal
-│   ├── ErrorBoundary.jsx         # React error boundary
-│   ├── InstallPrompt.jsx         # PWA install banner
-│   └── Toast.jsx                 # Toast notification system
-├── lib/supabase/
-│   ├── client.js                 # Browser-side Supabase client
-│   ├── server.js                 # Server-side Supabase client
-│   └── middleware.js             # Auth middleware helper
-└── middleware.js                 # Route protection middleware
+This listens to every change on the table. RLS only protects direct queries, not realtime broadcasts.
+
+**How I fixed it:** Added a `filter` to the subscription:
+```js
+filter: `user_id=eq.${userId}`
+```
+Now each user's browser only receives events for their own bookmarks.
+
+---
+
+### Problem 3: Duplicate bookmarks appearing from Realtime
+
+When I added a bookmark, it would sometimes show up twice in the list — once from the optimistic update (instant UI feedback) and once from the Realtime event.
+
+**What went wrong:** The flow was: user clicks "Add" → I immediately push the bookmark into state (optimistic) → Supabase INSERT completes → Realtime fires an INSERT event → the same bookmark gets added again.
+
+**How I fixed it:** In the Realtime INSERT handler, I check if the bookmark already exists:
+```js
+if (payload.eventType === "INSERT") {
+  setBookmarks(prev => {
+    if (prev.some(b => b.id === payload.new.id)) return prev;
+    return [payload.new, ...prev];
+  });
+}
+```
+This deduplicates — if the optimistic update already added it, the Realtime event is ignored.
+
+---
+
+### Problem 4: OAuth redirect URL mismatch after deploying to Vercel
+
+Login worked perfectly on `localhost:3000` but broke completely after deploying to Vercel.
+
+**What went wrong:** Google OAuth requires exact redirect URIs. My Supabase project was configured with `http://localhost:3000` as the only allowed redirect, so when the deployed app tried to redirect back after Google login, Supabase rejected it.
+
+**How I fixed it:**
+1. Added my Vercel URL (`https://bookmark-pro-jet.vercel.app`) to Supabase Dashboard → Authentication → URL Configuration → Redirect URLs
+2. Made sure the callback route (`/auth/callback/route.js`) uses `origin` from the request URL instead of a hardcoded URL:
+```js
+const { origin } = new URL(request.url);
+return NextResponse.redirect(`${origin}${next}`);
+```
+This way it works on both localhost and production without any code changes.
+
+---
+
+### Problem 5: Channel cleanup on component unmount
+
+**What went wrong:** Every time the Dashboard component re-rendered (like when navigating back), a new Realtime channel was created without removing the old one. This led to multiple active subscriptions, which caused bookmarks to appear multiple times.
+
+**How I fixed it:** Used the `useEffect` cleanup function:
+```js
+useEffect(() => {
+  const channel = supabase.channel("bm-changes").on(...).subscribe();
+  return () => supabase.removeChannel(channel);
+}, []);
+```
+When the component unmounts, the channel is properly removed. No more ghost subscriptions.
+
+---
+
+### Problem 6: Middleware cookie handling in Next.js 16
+
+The `cookies()` API in Next.js App Router is async now (since Next.js 15+). Also, `setAll` can throw in server components because you can't set cookies during render.
+
+**What went wrong:** I was calling `cookies()` without `await`, which caused a runtime error. And when `setAll` was called inside a server component, it threw an exception that crashed the page.
+
+**How I fixed it:**
+- Used `await cookies()` in the server client
+- Wrapped `setAll` in a try/catch — if it fails (like in a server component), it's fine because the middleware handles cookie refresh anyway:
+```js
+setAll(cookiesToSet) {
+  try {
+    cookiesToSet.forEach(({ name, value, options }) =>
+      cookieStore.set(name, value, options)
+    );
+  } catch {
+    // Middleware handles cookie refresh, safe to ignore here
+  }
+}
 ```
 
 ---
 
-## How Realtime Works
-
-1. When the dashboard loads, `Dashboard` subscribes to a Supabase Realtime channel
-2. The channel listens for `postgres_changes` on the `bookmarks` table, filtered by `user_id`
-3. On `INSERT` → the new bookmark is prepended to the list state
-4. On `DELETE` → the bookmark is removed from the list state
-5. On `UPDATE` → the bookmark is replaced in-place (edit, favorite toggle)
-6. React re-renders the UI automatically — no manual refresh needed
-
-This means: if you open the app in two tabs and add a bookmark in one, it appears in the other tab instantly.
-
----
-
-## Database Schema
+## Database Setup
 
 ```sql
 CREATE TABLE bookmarks (
@@ -87,70 +152,32 @@ CREATE TABLE bookmarks (
   is_favorite BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- RLS Policies (enable RLS on the table first)
+-- SELECT: users can only read their own bookmarks
+-- INSERT: users can only insert with their own user_id
+-- UPDATE: users can only update their own bookmarks
+-- DELETE: users can only delete their own bookmarks
 ```
 
-**Row Level Security Policies:**
-- `SELECT` — Users can only view their own bookmarks
-- `INSERT` — Users can only insert bookmarks with their own `user_id`
-- `UPDATE` — Users can only update their own bookmarks
-- `DELETE` — Users can only delete their own bookmarks
-
 ---
 
-## Problems Faced & Solutions
-
-### 1. Folder Name with Spaces (npm restriction)
-**Problem:** The workspace folder had spaces and uppercase letters (`Smart bookmark`), which caused `create-next-app` to fail due to npm naming restrictions.
-**Solution:** Created the project in a properly named subfolder and moved files to the workspace root.
-
-### 2. Cookie Handling in App Router
-**Problem:** Next.js App Router requires different Supabase client configurations for browser vs server vs middleware. Using the wrong client causes authentication failures.
-**Solution:** Created three separate Supabase client files — `client.js` (browser), `server.js` (server components/actions), and `middleware.js` (route protection) — following Supabase's official SSR guide.
-
-### 3. Realtime Channel Cleanup
-**Problem:** Without proper cleanup, switching pages or re-rendering components created multiple duplicate realtime channels, causing performance issues and duplicate bookmark entries.
-**Solution:** Used `useEffect` cleanup function with `supabase.removeChannel(channel)` to unsubscribe when the component unmounts.
-
-### 4. RLS + Realtime Filter
-**Problem:** Even with RLS enabled, the Realtime channel would receive events for all rows in the table unless explicitly filtered.
-**Solution:** Added `filter: 'user_id=eq.${userId}'` to the channel subscription so each user only receives events for their own bookmarks.
-
-### 5. OAuth Redirect URI Configuration
-**Problem:** Google OAuth requires exact redirect URIs. Mismatched URIs cause login failures.
-**Solution:** Configured the correct callback URL (`https://<project>.supabase.co/auth/v1/callback`) in both Google Cloud Console and Supabase dashboard. For Vercel deployment, also added the production URL to Supabase's allowed redirect URLs.
-
-### 6. Optimistic Updates & Rollback
-**Problem:** Waiting for server response before updating UI makes interactions feel sluggish.
-**Solution:** Implemented optimistic updates for delete, favorite toggle, and edit operations. If the server request fails, the UI rolls back to the previous state and shows an error toast.
-
----
-
-## Local Development
+## How to Run Locally
 
 ```bash
-# Clone the repo
 git clone <repo-url>
 cd smart-bookmark
-
-# Install dependencies
 npm install
+```
 
-# Create .env.local with your Supabase credentials
-NEXT_PUBLIC_SUPABASE_URL=your_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
+Create `.env.local`:
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-# Run development server
+```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## Deployment
-
-1. Push code to GitHub (public repo)
-2. Import repo in [Vercel](https://vercel.com)
-3. Add environment variables: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Deploy
-5. Add Vercel production URL to Supabase → Authentication → URL Configuration → Redirect URLs
+Open [http://localhost:3000](http://localhost:3000)
